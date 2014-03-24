@@ -94,11 +94,54 @@ object Option {
     f(s) && g(s)))
   def variance(xs: Seq[Double]): Option[Double] = sys.error("todo")
 
-  def map2[A,B,C](a: Option[A], b: Option[B])(f: (A, B) => C): Option[C] = sys.error("todo")
+  def map2[A,B,C](a: Option[A], b: Option[B])(f: (A, B) => C): Option[C] = {
+    for { 
+      aa <- a
+      bb <-b 
+    } yield f(aa, bb)
+    }
 
-  def bothMatch_2(pat1: String, pat2: String, s: String): Option[Boolean] = sys.error("todo")
+  def bothMatch_2(pat1: String, pat2: String, s: String): Option[Boolean] = {
+    map2(mkMatcher(pat1), mkMatcher(pat2))((a, b) => a(s) && b(s))
+  }
 
-  def sequence[A](a: List[Option[A]]): Option[List[A]] = sys.error("todo")
+  def sequence[A](a: List[Option[A]]): Option[List[A]] = {
+    //a.foldRight(Some(Nil.asInstanceOf[List[A]]))((q,b)=>q.flatMap(aa => b.map(bb=>bb::aa)))
+    a match {
+      case h::t => h.flatMap(hh => sequence(t).map(tt=>hh::tt))
+      case Nil => Some(Nil)
+    }
+  } 
 
-  def traverse[A, B](a: List[A])(f: A => Option[B]): Option[List[B]] = sys.error("todo")
+  def traverse[A, B](a: List[A])(f: A => Option[B]): Option[List[B]] = {
+    sequence(a.map(f(_)))
+  }
+
+  def traverse_1[A, B](a: List[A])(f: A => Option[B]): Option[List[B]] = {
+    a.foldRight(Some(Nil).asInstanceOf[Option[List[B]]])(((x,y) => f(x).flatMap(xx => y.map(xx :: _))))
+  }
+  def sequence_2[A](a: List[Option[A]]): Option[List[A]] = {
+    traverse(a)(a=>a)
+  }
+}
+
+object OptionRun extends App {
+  def f(s: String, n: Int) = s.substring(n)
+  var a=Some("Hello World")
+  var b=Some(3)
+  println(Option.map2(a,b)(f))
+
+  println(Option.bothMatch_2("H*", "G*", "Hello World"))
+  
+  val l = List(Some(1), Some(2), Some(3))
+  println(Option.sequence(l))
+  
+  val l2 = List("A", "AA", "AAA")
+  val f = ((s:String) => Some(s.length))
+
+  println(Option.traverse(l2)(f))
+
+  println(Option.traverse_1(l2)(f))
+  
+  println(Option.sequence_2(l))
 }
