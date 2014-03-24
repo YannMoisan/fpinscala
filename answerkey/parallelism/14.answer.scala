@@ -1,3 +1,9 @@
-/* This implementation uses `get` directly and does not propagate timeouts. */
-def choice[A](a: Par[Boolean])(ifTrue: Par[A], ifFalse: Par[A]): Par[A] =
-  es => if (a(es).get) ifTrue(es) else ifFalse(es)
+// see nonblocking implementation in `Nonblocking.scala`
+def join[A](a: Par[Par[A]]): Par[A] = 
+  es => run(es)(run(es)(a).get())
+
+def joinViaFlatMap[A](a: Par[Par[A]]): Par[A] = 
+  flatMap(a)(x => x)
+
+def flatMapViaJoin[A,B](p: Par[A])(f: A => Par[B]): Par[B] = 
+  join(map(p)(f))

@@ -1,3 +1,8 @@
-/* 
-For a thread pool of size 2, `fork(fork(fork(x)))` will deadlock, and so on. Another, perhaps more interesting example is `fork(map2(fork(x), fork(y)))`. In this case, the outer task is submitted first and occupies a thread waiting for both `fork(x)` and `fork(y)`. The `fork(x)` and `fork(y)` tasks are submitted and run in parallel, except that only one thread is available, resulting in deadlock. 
-*/
+def choiceN[A](n: Par[Int])(choices: List[Par[A]]): Par[A] = 
+  es => {
+    val ind = run(es)(n).get // Notice we are blocking on the result of `cond`.
+    run(es)(choices(ind))
+  }
+
+def choiceViaChoiceN[A](a: Par[Boolean])(ifTrue: Par[A], ifFalse: Par[A]): Par[A] =
+  choiceN(map(a)(b => if (b) 1 else 0))(List(ifTrue, ifFalse))

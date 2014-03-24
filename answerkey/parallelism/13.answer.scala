@@ -1,11 +1,18 @@
-/* 
-When we implemented `map` in terms of `map2` and `unit`, we chose, rather arbitrarily, to put the dummy value on the right. We expect that it would mean the same to put this dummy value on the left:
+def chooser[A,B](p: Par[A])(choices: A => Par[B]): Par[B] = 
+  es => {
+    val k = run(es)(p).get
+    run(es)(choices(k))
+  }
 
-map2(x, unit(()))(_._1) == map2(unit(()), x)(_._2)
+/* `chooser` is usually called `flatMap` or `bind`. */
+def flatMap[A,B](p: Par[A])(choices: A => Par[B]): Par[B] = 
+  es => {
+    val k = run(es)(p).get
+    run(es)(choices(k))
+  }
 
-Not very exciting, but somewhat related, `map2` seems like it ought to be associative. That is:
+def choiceViaFlatMap[A](p: Par[Boolean])(f: Par[A], t: Par[A]): Par[A] =
+  flatMap(p)(b => if (b) t else f)
 
-product(product(a,b),c) ~ product(a, product(b,c))
-
-Of course, the tuples will be grouped differently on each side of the equation. Associativity is an extremely common property, and it's very desirable. Without it, we have to be aware of and make decisions about how to factor our expressions. 
-*/
+def choiceNViaFlatMap[A](p: Par[Int])(choices: List[Par[A]]): Par[A] =
+  flatMap(p)(i => choices(i))

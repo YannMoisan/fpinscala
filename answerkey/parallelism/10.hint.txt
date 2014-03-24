@@ -1,1 +1,1 @@
-The problem is with fixed size thread pools.
+Try adding a second continuation argument to `Future.apply`, which takes an error handler.

@@ -1,1 +1,1 @@
-Keep reading. The issue is explained in the next paragraph.
+We give a fully fleshed-out solution in the `Future` data type in Chapter 13.
