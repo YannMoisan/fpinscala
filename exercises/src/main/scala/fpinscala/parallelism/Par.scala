@@ -18,7 +18,7 @@ object Par {
   
   def map2[A,B,C](a: Par[A], b: Par[B])(f: (A,B) => C): Par[C] = // `map2` doesn't evaluate the call to `f` in a separate logical thread, in accord with our design choice of having `fork` be the sole function in the API for controlling parallelism. We can always do `fork(map2(a,b)(f))` if we want the evaluation of `f` to occur in a separate thread.
     (es: ExecutorService) => {
-      val af = a(es) 
+      val af = a(es)
       val bf = b(es)
       UnitFuture(f(af.get, bf.get)) // This implementation of `map2` does _not_ respect timeouts. It simply passes the `ExecutorService` on to both `Par` values, waits for the results of the Futures `af` and `bf`, applies `f` to them, and wraps them in a `UnitFuture`. In order to respect timeouts, we'd need a new `Future` implementation that records the amount of time spent evaluating `af`, then subtracts that time from the available time allocated for evaluating `bf`.
     }
@@ -27,6 +27,20 @@ object Par {
     es => es.submit(new Callable[A] { 
       def call = a(es).get
     })
+
+  def lazyUnit[A](a : => A) : Par[A] = {
+    fork(unit(a))
+  }
+
+  def asyncF[A,B](f:A=>B):A=>Par[B] = {
+    a => lazyUnit(f(a))
+  }
+
+  def sequence[A](ps: List[Par[A]]):Par[List[A]]={
+    ps.foldRight(unit(Nil: List[A]))((a, b) => map2(a, b)(_ :: _))
+  }
+
+  def parFilter[A](as:List[A])(f:A=> Boolean):Par[List[A]] = ???
 
   def map[A,B](pa: Par[A])(f: A => B): Par[B] = 
     map2(pa, unit(()))((a,_) => f(a))
@@ -62,5 +76,19 @@ object Examples {
       val (l,r) = ints.splitAt(ints.length/2) // Divide the sequence in half using the `splitAt` function.
       sum(l) + sum(r) // Recursively sum both halves and add the results together.
     }
+
+}
+
+object Test extends App {
+  import Par._
+  val u1 = unit(1)
+  println(run(Executors.newFixedThreadPool(3))(u1).get())
+
+  val u2 = unit(2)
+  val u3 = unit(3)
+  val pl = sequence(List(u1, u2, u3))
+
+  println(run(Executors.newFixedThreadPool(3))(pl).get())
+
 
 }
